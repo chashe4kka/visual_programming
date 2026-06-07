@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>MarvelPedia - Интерактивная энциклопедия Marvel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #666;
+            --accent: #e23636;
+            --accent-dark: #b12a2a;
+            --border: #ddd;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --card-bg: #ffffff;
+            --sidebar-bg: #1a1a2e;
+            --sidebar-text: #ffffff;
+            --hover-bg: rgba(226, 54, 54, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #aaa;
+            --accent: #e23636;
+            --accent-dark: #ff4a4a;
+            --border: #333;
+            --shadow: 0 4px 6px rgba(0,0,0,0.3);
+            --card-bg: #16213e;
+            --sidebar-bg: #0f0f1a;
+            --sidebar-text: #ffffff;
+            --hover-bg: rgba(226, 54, 54, 0.2);
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Montserrat', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        #app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        @media (min-width: 1024px) {
+            .sidebar {
+                transform: translateX(0);
+            }
+            .burger-menu {
+                display: none;
+            }
+            .main-content {
+                margin-left: 280px;
+            }
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            color: var(--accent);
+            margin-right: 10px;
+        }
+
+        .close-sidebar {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 20px 0;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 15px 24px;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: rgba(226, 54, 54, 0.2);
+        }
+
+        .nav-link.active {
+            background: var(--accent);
+        }
+
+        .badge {
+            background: var(--accent);
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .theme-toggle, .admin-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .theme-toggle:hover, .admin-btn:hover {
+            background: var(--accent);
+        }
+
+        .main-content {
+            flex: 1;
+            width: 100%;
+        }
+
+        .top-bar {
+            background: var(--bg-secondary);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .burger-menu {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        #pageTitle {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .page-content {
+            padding: 24px;
+            min-height: calc(100vh - 80px);
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .favorite-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0,0,0,0.5);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            color: white;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .favorite-btn.active {
+            color: #ff4444;
+        }
+
+        .favorite-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .card-content {
+            padding: 16px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .card-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .badge-status, .badge-team, .badge-phase {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: var(--hover-bg);
+        }
+
+        .badge-status.hero { background: #4caf50; color: white; }
+        .badge-status.villain { background: #f44336; color: white; }
+        .badge-status.antihero { background: #ff9800; color: white; }
+
+        .card-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+            margin-right: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-dark);
+        }
+
+        .btn-secondary {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .filters-bar {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .filter-select {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .loader-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card i {
+            font-size: 40px;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .random-fact {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 4px solid var(--accent);
+        }
+
+        .welcome-section {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            border-radius: 20px;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .modal-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-container.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modal-image {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 3000;
+        }
+
+        .notification {
+            padding: 12px 20px;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            margin-bottom: 10px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .notification.success { border-left: 4px solid #4caf50; }
+        .notification.error { border-left: 4px solid #f44336; }
+
+        @media (max-width: 768px) {
+            .page-content { padding: 16px; }
+            .cards-grid { grid-template-columns: 1fr; }
+            .filters-bar { flex-direction: column; }
+            .filter-group { width: 100%; }
+            .filter-select { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo"><i class="fas fa-mask"></i><span>MarvelPedia</span></div>
+                <button class="close-sidebar" id="closeSidebar"><i class="fas fa-times"></i></button>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-link active" data-page="home"><i class="fas fa-home"></i><span>Главная</span></div>
+                <div class="nav-link" data-page="characters"><i class="fas fa-users"></i><span>Персонажи</span></div>
+                <div class="nav-link" data-page="movies"><i class="fas fa-film"></i><span>Фильмы</span></div>
+                <div class="nav-link" data-page="comics"><i class="fas fa-book"></i><span>Комиксы</span></div>
+                <div class="nav-link" data-page="favorites"><i class="fas fa-heart"></i><span>Избранное</span><span class="badge" id="favoritesCount">0</span></div>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i><span>Тёмная тема</span></button>
+                <button class="admin-btn" id="adminBtn"><i class="fas fa-cog"></i><span>Управление</span></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="burger-menu" id="burgerMenu"><i class="fas fa-bars"></i></button>
+                <h1 id="pageTitle">MarvelPedia</h1>
+                <div></div>
+            </header>
+            <div id="pageContent" class="page-content">
+                <div class="loader-container"><div class="loader"></div></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="modalContainer" class="modal-container"></div>
+    <div id="notificationContainer" class="notification-container"></div>
+
+    <script>
+        // ==================== ДАННЫЕ ====================
+        const MARVEL_DATA = {
+            characters: [
+                { id: "char1", name: "Железный Человек", description: "Гений, миллиардер, плейбой, филантроп. Тони Старк создал высокотехнологичный костюм.", team: "Мстители", status: "hero", firstAppearance: 1963, powerLevel: 95, abilities: ["Гениальный интеллект", "Бронекостюм"] },
+                { id: "char2", name: "Человек-паук", description: "Питер Паркер получил паучьи способности после укуса радиоактивного паука.", team: "Мстители", status: "hero", firstAppearance: 1962, powerLevel: 85, abilities: ["Паучье чутьё", "Лазание по стенам"] },
+                { id: "char3", name: "Халк", description: "Брюс Бэннер превращается в зелёного монстра.", team: "Мстители", status: "antihero", firstAppearance: 1962, powerLevel: 98, abilities: ["Сверхсила", "Регенерация"] },
+                { id: "char4", name: "Капитан Америка", description: "Стив Роджерс - суперсолдат.", team: "Мстители", status: "hero", firstAppearance: 1941, powerLevel: 85, abilities: ["Пик человека", "Вибраниумный щит"] },
+                { id: "char5", name: "Тор", description: "Бог грома из Асгарда.", team: "Мстители", status: "hero", firstAppearance: 1962, powerLevel: 97, abilities: ["Контроль молний", "Мьёльнир"] },
+                { id: "char6", name: "Чёрная Вдова", description: "Наташа Романофф - бывшая шпионка.", team: "Мстители", status: "hero", firstAppearance: 1964, powerLevel: 75, abilities: ["Шпионаж", "Боевые искусства"] },
+                { id: "char7", name: "Соколиный Глаз", description: "Клинт Бартон - непревзойдённый лучник.", team: "Мстители", status: "hero", firstAppearance: 1964, powerLevel: 72, abilities: ["Меткость", "Тактик"] },
+                { id: "char8", name: "Доктор Стрэндж", description: "Верховный маг Земли.", team: "Мстители", status: "hero", firstAppearance: 1963, powerLevel: 94, abilities: ["Магия", "Глаз Агамотто"] },
+                { id: "char9", name: "Чёрная Пантера", description: "Король Ваканды.", team: "Мстители", status: "hero", firstAppearance: 1966, powerLevel: 88, abilities: ["Вибраниум", "Сверхсила"] },
+                { id: "char10", name: "Капитан Марвел", description: "Кэрол Дэнверс обладает космической силой.", team: "Мстители", status: "hero", firstAppearance: 1968, powerLevel: 96, abilities: ["Полёт", "Энерговзрывы"] },
+                { id: "char11", name: "Росомаха", description: "Логан с адамантиевыми когтями.", team: "Люди Икс", status: "antihero", firstAppearance: 1974, powerLevel: 92, abilities: ["Адамантий", "Регенерация"] },
+                { id: "char12", name: "Профессор Икс", description: "Сильнейший телепат.", team: "Люди Икс", status: "hero", firstAppearance: 1963, powerLevel: 93, abilities: ["Телепатия"] },
+                { id: "char13", name: "Магнето", description: "Контролирует магнитные поля.", team: "Братство мутантов", status: "villain", firstAppearance: 1963, powerLevel: 94, abilities: ["Магнетизм"] },
+                { id: "char14", name: "Танос", description: "Безумный титан.", team: "Чёрный Орден", status: "villain", firstAppearance: 1973, powerLevel: 100, abilities: ["Сверхсила", "Бессмертие"] },
+                { id: "char15", name: "Локи", description: "Бог обмана.", team: "Асгард", status: "villain", firstAppearance: 1949, powerLevel: 85, abilities: ["Иллюзии", "Магия"] },
+                { id: "char16", name: "Веном", description: "Симбиот.", team: "Соло", status: "antihero", firstAppearance: 1988, powerLevel: 86, abilities: ["Симбиот"] },
+                { id: "char17", name: "Дэдпул", description: "Болтливый наёмник.", team: "Люди Икс", status: "antihero", firstAppearance: 1991, powerLevel: 84, abilities: ["Регенерация"] },
+                { id: "char18", name: "Мистер Фантастик", description: "Растягивает тело.", team: "Фантастическая четвёрка", status: "hero", firstAppearance: 1961, powerLevel: 85, abilities: ["Растяжение"] },
+                { id: "char19", name: "Существо", description: "Каменная кожа.", team: "Фантастическая четвёрка", status: "hero", firstAppearance: 1961, powerLevel: 90, abilities: ["Сверхсила"] },
+                { id: "char20", name: "Человек-Факел", description: "Контролирует огонь.", team: "Фантастическая четвёрка", status: "hero", firstAppearance: 1961, powerLevel: 87, abilities: ["Пирокинез"] },
+                { id: "char21", name: "Шторм", description: "Контролирует погоду.", team: "Люди Икс", status: "hero", firstAppearance: 1975, powerLevel: 90, abilities: ["Погода"] },
+                { id: "char22", name: "Циклоп", description: "Оптические лучи.", team: "Люди Икс", status: "hero", firstAppearance: 1963, powerLevel: 82, abilities: ["Лучи"] },
+                { id: "char23", name: "Зелёный Гоблин", description: "Норман Озборн.", team: "Зловещая шестёрка", status: "villain", firstAppearance: 1964, powerLevel: 80, abilities: ["Сверхсила"] },
+                { id: "char24", name: "Каратель", description: "Война с преступностью.", team: "Соло", status: "antihero", firstAppearance: 1974, powerLevel: 78, abilities: ["Оружие"] },
+                { id: "char25", name: "Невидимая Леди", description: "Невидимость и силовые поля.", team: "Фантастическая четвёрка", status: "hero", firstAppearance: 1961, powerLevel: 86, abilities: ["Невидимость"] }
+            ],
+            movies: [
+                { id: "mov1", title: "Железный человек", description: "Тони Старк создаёт высокотехнологичный костюм.", phase: 1, year: 2008, rating: 7.9, duration: 126 },
+                { id: "mov2", title: "Невероятный Халк", description: "Брюс Бэннер ищет лекарство.", phase: 1, year: 2008, rating: 6.6, duration: 112 },
+                { id: "mov3", title: "Железный человек 2", description: "Тони Старк сталкивается с новыми врагами.", phase: 1, year: 2010, rating: 7.0, duration: 124 },
+                { id: "mov4", title: "Тор", description: "Тор изгнан на Землю.", phase: 1, year: 2011, rating: 7.0, duration: 115 },
+                { id: "mov5", title: "Первый мститель", description: "Стив Роджерс становится суперсолдатом.", phase: 1, year: 2011, rating: 6.9, duration: 124 },
+                { id: "mov6", title: "Мстители", description: "Первое объединение команды.", phase: 1, year: 2012, rating: 8.0, duration: 143 },
+                { id: "mov7", title: "Железный человек 3", description: "Тони Старк против Мандарина.", phase: 2, year: 2013, rating: 7.1, duration: 130 },
+                { id: "mov8", title: "Тор 2: Царство тьмы", description: "Тор сражается с Малекитом.", phase: 2, year: 2013, rating: 6.8, duration: 112 },
+                { id: "mov9", title: "Первый мститель: Другая война", description: "Капитан Америка раскрывает заговор.", phase: 2, year: 2014, rating: 7.7, duration: 136 },
+                { id: "mov10", title: "Стражи Галактики", description: "Группа изгоев спасает галактику.", phase: 2, year: 2014, rating: 8.0, duration: 121 },
+                { id: "mov11", title: "Мстители: Эра Альтрона", description: "Мстители против ИИ Альтрона.", phase: 2, year: 2015, rating: 7.3, duration: 141 },
+                { id: "mov12", title: "Человек-муравей", description: "Скотт Лэнг становится героем.", phase: 2, year: 2015, rating: 7.3, duration: 117 },
+                { id: "mov13", title: "Первый мститель: Противостояние", description: "Гражданская война.", phase: 3, year: 2016, rating: 7.8, duration: 147 },
+                { id: "mov14", title: "Доктор Стрэндж", description: "Нейрохирург становится магом.", phase: 3, year: 2016, rating: 7.5, duration: 115 },
+                { id: "mov15", title: "Стражи Галактики 2", description: "Стражи ищут отца Питера.", phase: 3, year: 2017, rating: 7.6, duration: 136 },
+                { id: "mov16", title: "Человек-паук: Возвращение домой", description: "Питер Паркер учится быть героем.", phase: 3, year: 2017, rating: 7.4, duration: 133 },
+                { id: "mov17", title: "Тор: Рагнарёк", description: "Тор становится гладиатором.", phase: 3, year: 2017, rating: 7.9, duration: 130 },
+                { id: "mov18", title: "Чёрная Пантера", description: "Т'Чалла возвращается в Ваканду.", phase: 3, year: 2018, rating: 7.3, duration: 134 },
+                { id: "mov19", title: "Мстители: Война бесконечности", description: "Мстители против Таноса.", phase: 3, year: 2018, rating: 8.4, duration: 149 },
+                { id: "mov20", title: "Человек-муравей и Оса", description: "Скотт и Хоуп работают вместе.", phase: 3, year: 2018, rating: 7.0, duration: 118 },
+                { id: "mov21", title: "Капитан Марвел", description: "Кэрол Дэнверс становится героиней.", phase: 3, year: 2019, rating: 6.8, duration: 123 },
+                { id: "mov22", title: "Мстители: Финал", description: "Финальная битва.", phase: 3, year: 2019, rating: 8.4, duration: 181 },
+                { id: "mov23", title: "Человек-паук: Вдали от дома", description: "Питер отдыхает в Европе.", phase: 3, year: 2019, rating: 7.4, duration: 129 },
+                { id: "mov24", title: "Чёрная Вдова", description: "История Наташи.", phase: 4, year: 2021, rating: 6.7, duration: 134 },
+                { id: "mov25", title: "Шан-Чи", description: "Легенда десяти колец.", phase: 4, year: 2021, rating: 7.4, duration: 132 }
+            ],
+            comics: [
+                { id: "com1", title: "Iron Man: Extremis", author: "Уоррен Эллис", description: "Новая угроза.", year: 2005, publisher: "Marvel", issues: 6 },
+                { id: "com2", title: "Ultimate Spider-Man", author: "Бендис", description: "Переосмысление.", year: 2000, publisher: "Marvel", issues: 160 },
+                { id: "com3", title: "Immortal Hulk", author: "Ал Юинг", description: "Халк как монстр.", year: 2018, publisher: "Marvel", issues: 50 },
+                { id: "com4", title: "Captain America: Winter Soldier", author: "Брубейкер", description: "Возвращение Баки.", year: 2005, publisher: "Marvel", issues: 14 },
+                { id: "com5", title: "Thor: God of Thunder", author: "Аарон", description: "Тор сквозь века.", year: 2012, publisher: "Marvel", issues: 25 },
+                { id: "com6", title: "X-Men: Days of Future Past", author: "Клэрмонт", description: "Мрачное будущее.", year: 1981, publisher: "Marvel", issues: 2 },
+                { id: "com7", title: "Black Panther: Nation Under Our Feet", author: "Кози", description: "Кризис в Ваканде.", year: 2016, publisher: "Marvel", issues: 12 },
+                { id: "com8", title: "Doctor Strange: The Oath", author: "Вон", description: "Поиск лекарства.", year: 2006, publisher: "Marvel", issues: 5 },
+                { id: "com9", title: "Hawkeye", author: "Фрэкшн", description: "Жизнь лучника.", year: 2012, publisher: "Marvel", issues: 22 },
+                { id: "com10", title: "Deadpool Kills Marvel Universe", author: "Банн", description: "Дэдпул уничтожает всех.", year: 2011, publisher: "Marvel", issues: 4 },
+                { id: "com11", title: "Venom: Lethal Protector", author: "Микелайни", description: "Веном как герой.", year: 1993, publisher: "Marvel", issues: 6 },
+                { id: "com12", title: "Planet Hulk", author: "Пак", description: "Халк-гладиатор.", year: 2006, publisher: "Marvel", issues: 14 },
+                { id: "com13", title: "World War Hulk", author: "Пак", description: "Месть Халка.", year: 2007, publisher: "Marvel", issues: 5 },
+                { id: "com14", title: "Spider-Man: Blue", author: "Лёб", description: "История любви.", year: 2002, publisher: "Marvel", issues: 6 },
+                { id: "com15", title: "Fantastic Four: Forever", author: "Норт", description: "Возвращение.", year: 2022, publisher: "Marvel", issues: 6 },
+                { id: "com16", title: "Fantastic Four: Herald of Doom", author: "Слотт", description: "Доктор Дум возвращается.", year: 2023, publisher: "Marvel", issues: 5 },
+                { id: "com17", title: "Black Widow: The Things They Say About Her", author: "Морган", description: "Шпионские приключения.", year: 2005, publisher: "Marvel", issues: 6 },
+                { id: "com18", title: "Captain Marvel: Higher, Further, Faster", author: "ДеКонник", description: "Кэрол в космосе.", year: 2014, publisher: "Marvel", issues: 6 },
+                { id: "com19", title: "Loki: Agent of Asgard", author: "Юинг", description: "Локи - агент Асгарда.", year: 2014, publisher: "Marvel", issues: 17 },
+                { id: "com20", title: "Green Goblin: Last Stand", author: "Хадлин", description: "Последняя битва.", year: 2006, publisher: "Marvel", issues: 5 },
+                { id: "com21", title: "The Punisher MAX: Born", author: "Эннис", description: "Рождение Карателя.", year: 2003, publisher: "MAX", issues: 4 },
+                { id: "com22", title: "Spider-Man: Life Story", author: "Здарски", description: "Паук стареет.", year: 2019, publisher: "Marvel", issues: 6 },
+                { id: "com23", title: "The Mighty Thor", author: "Аарон", description: "Джейн Фостер - Тор.", year: 2015, publisher: "Marvel", issues: 22 },
+                { id: "com24", title: "X-Men: God Loves, Man Kills", author: "Клэрмонт", description: "Фанатик против мутантов.", year: 1982, publisher: "Marvel", issues: 1 },
+                { id: "com25", title: "Fantastic Four: Full Circle", author: "Росс", description: "Новое приключение.", year: 2022, publisher: "Marvel", issues: 1 }
+            ]
+        };
+
+        // ==================== STORAGE ====================
+        const Storage = {
+            keys: { characters: 'marvel_chars', movies: 'marvel_movies', comics: 'marvel_comics', favorites: 'marvel_favs', ratings: 'marvel_ratings', theme: 'marvel_theme' },
+            
+            init() {
+                if (!localStorage.getItem(this.keys.characters)) localStorage.setItem(this.keys.characters, JSON.stringify(MARVEL_DATA.characters));
+                if (!localStorage.getItem(this.keys.movies)) localStorage.setItem(this.keys.movies, JSON.stringify(MARVEL_DATA.movies));
+                if (!localStorage.getItem(this.keys.comics)) localStorage.setItem(this.keys.comics, JSON.stringify(MARVEL_DATA.comics));
+                if (!localStorage.getItem(this.keys.favorites)) localStorage.setItem(this.keys.favorites, JSON.stringify([]));
+                if (!localStorage.getItem(this.keys.ratings)) localStorage.setItem(this.keys.ratings, JSON.stringify({}));
+            },
+            
+            getCharacters() { return JSON.parse(localStorage.getItem(this.keys.characters) || '[]'); },
+            getMovies() { return JSON.parse(localStorage.getItem(this.keys.movies) || '[]'); },
+            getComics() { return JSON.parse(localStorage.getItem(this.keys.comics) || '[]'); },
+            getFavorites() { return JSON.parse(localStorage.getItem(this.keys.favorites) || '[]'); },
+            getRatings() { return JSON.parse(localStorage.getItem(this.keys.ratings) || '{}'); },
+            getTheme() { return localStorage.getItem(this.keys.theme) || 'light'; },
+            
+            saveCharacters(data) { localStorage.setItem(this.keys.characters, JSON.stringify(data)); },
+            saveMovies(data) { localStorage.setItem(this.keys.movies, JSON.stringify(data)); },
+            saveComics(data) { localStorage.setItem(this.keys.comics, JSON.stringify(data)); },
+            saveFavorites(data) { localStorage.setItem(this.keys.favorites, JSON.stringify(data)); },
+            saveRatings(data) { localStorage.setItem(this.keys.ratings, JSON.stringify(data)); },
+            saveTheme(theme) { localStorage.setItem(this.keys.theme, theme); },
+            
+            isFavorite(id) { return this.getFavorites().some(f => f.id === id); },
+            addFavorite(id, type) { let favs = this.getFavorites(); if (!this.isFavorite(id)) { favs.push({ id, type }); this.saveFavorites(favs); return true; } return false; },
+            removeFavorite(id) { this.saveFavorites(this.getFavorites().filter(f => f.id !== id)); },
+            
+            getUserRating(movieId) { return this.getRatings()[movieId] || null; },
+            setUserRating(movieId, rating) { let ratings = this.getRatings(); ratings[movieId] = rating; this.saveRatings(ratings); }
+        };
+
+        // ==================== NOTIFICATIONS ====================
+        const Notify = {
+            show(msg, type = 'info') {
+                const container = document.getElementById('notificationContainer');
+                const notif = document.createElement('div');
+                notif.className = `notification ${type}`;
+                notif.innerHTML = `<span>${msg}</span><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;">✕</button>`;
+                container.appendChild(notif);
+                setTimeout(() => notif.remove(), 3000);
+            },
+            success(msg) { this.show(msg, 'success'); },
+            error(msg) { this.show(msg, 'error'); }
+        };
+
+        // ==================== MODAL ====================
+        const Modal = {
+            container: document.getElementById('modalContainer'),
+            show(options) {
+                this.container.innerHTML = `
+                    <div class="modal">
+                        <div class="modal-header"><h2>${options.title}</h2><button class="modal-close">✕</button></div>
+                        <div class="modal-body">${options.content || ''}</div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary cancel-btn">Закрыть</button>
+                        </div>
+                    </div>
+                `;
+                this.container.classList.add('active');
+                const close = () => { this.container.classList.remove('active'); };
+                this.container.querySelector('.modal-close').onclick = close;
+                this.container.querySelector('.cancel-btn').onclick = close;
+            },
+            hide() { this.container.classList.remove('active'); }
+        };
+
+        // ==================== ФУНКЦИИ ДЛЯ КАРТИНОК ====================
+        function getImagePath(id, type) {
+            if (type === 'comic') {
+                const num = id.replace('com', '');
+                return `images/com_${num}.jpg`;
+            } else if (type === 'character') {
+                return `images/${id}.jpg`;
+            } else if (type === 'movie') {
+                return `images/${id}.jpg`;
+            }
+            return `images/${id}.jpg`;
+        }
+        
+        function getImageHtml(id, name, type) {
+            const imgPath = getImagePath(id, type);
+            // Кодируем имя для placeholder
+            const encodedName = encodeURIComponent(name);
+            
+            return `<img src="${imgPath}" 
+                        alt="${name}"
+                        style="width:100%; height:100%; object-fit:cover;"
+                        onerror="this.onerror=null; this.src='https://placehold.co/400x300/e23636/white?text=${encodedName}';">`;
+        }
+
+        // ==================== UI HELPERS ====================
+        function renderCharacterCard(char, isFav) {
+            const statusClass = char.status === 'hero' ? 'hero' : (char.status === 'villain' ? 'villain' : 'antihero');
+            const statusText = char.status === 'hero' ? 'Герой' : (char.status === 'villain' ? 'Злодей' : 'Антигерой');
+            return `
+                <div class="card" data-id="${char.id}" data-type="character">
+                    <button class="favorite-btn ${isFav ? 'active' : ''}" data-id="${char.id}" data-type="character"><i class="fas fa-heart"></i></button>
+                    <div class="card-image">
+                        ${getImageHtml(char.id, char.name, 'character')}
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">${char.name}</h3>
+                        <p class="card-description">${char.description.substring(0, 80)}...</p>
+                        <div class="card-meta">
+                            <span class="badge-status ${statusClass}">${statusText}</span>
+                            <span class="badge-team">${char.team}</span>
+                        </div>
+                        <div class="card-stats">
+                            <span>⚡ Сила: ${char.powerLevel}</span>
+                            <span>📅 ${char.firstAppearance}</span>
+                        </div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${char.powerLevel}%"></div></div>
+                        <button class="btn btn-primary details-btn" data-id="${char.id}" data-type="character">Подробнее</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderMovieCard(movie, isFav, userRating) {
+            return `
+                <div class="card" data-id="${movie.id}" data-type="movie">
+                    <button class="favorite-btn ${isFav ? 'active' : ''}" data-id="${movie.id}" data-type="movie"><i class="fas fa-heart"></i></button>
+                    <div class="card-image">
+                        ${getImageHtml(movie.id, movie.title, 'movie')}
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">${movie.title}</h3>
+                        <p class="card-description">${movie.description.substring(0, 80)}...</p>
+                        <div class="card-meta">
+                            <span class="badge-phase">Фаза ${movie.phase}</span>
+                            <span>⭐ ${movie.rating}</span>
+                        </div>
+                        <div class="card-stats">
+                            <span>📅 ${movie.year}</span>
+                            <span>⏱️ ${movie.duration} мин</span>
+                        </div>
+                        ${userRating ? `<small>Ваша оценка: ${userRating}/10</small><div class="progress-bar"><div class="progress-fill" style="width: ${userRating * 10}%"></div></div>` : ''}
+                        <button class="btn btn-primary details-btn" data-id="${movie.id}" data-type="movie">Подробнее</button>
+                        <button class="btn btn-secondary rate-btn" data-id="${movie.id}">Оценить</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderComicCard(comic, isFav) {
+            return `
+                <div class="card" data-id="${comic.id}" data-type="comic">
+                    <button class="favorite-btn ${isFav ? 'active' : ''}" data-id="${comic.id}" data-type="comic"><i class="fas fa-heart"></i></button>
+                    <div class="card-image">
+                        ${getImageHtml(comic.id, comic.title, 'comic')}
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">${comic.title}</h3>
+                        <p class="card-description">${comic.description.substring(0, 80)}...</p>
+                        <div class="card-meta">
+                            <span class="badge-team">${comic.author}</span>
+                        </div>
+                        <div class="card-stats">
+                            <span>📅 ${comic.year}</span>
+                            <span>📚 ${comic.issues} выпусков</span>
+                        </div>
+                        <button class="btn btn-primary details-btn" data-id="${comic.id}" data-type="comic">Подробнее</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
+        let currentView = 'home';
+        
+        function renderHome() {
+            const container = document.getElementById('pageContent');
+            const chars = Storage.getCharacters();
+            const movies = Storage.getMovies();
+            const comics = Storage.getComics();
+            const randomFacts = [
+                "Человек-паук появился в 1962 году и стал самым популярным персонажем Marvel!",
+                "Танос появился в комиксах в 1973 году.",
+                "Железный человек был создан в разгар Холодной войны в 1963 году.",
+                "Халк изначально был серым, но из-за проблем с печатью стал зелёным!",
+                "Кинематографическая вселенная Marvel началась с фильма 'Железный человек' в 2008 году.",
+                "Мстители: Финал стал самым кассовым фильмом в истории."
+            ];
+            
+            container.innerHTML = `
+                <div class="welcome-section"><h1>Добро пожаловать в MarvelPedia</h1><p>Интерактивная энциклопедия вселенной Marvel</p></div>
+                <div class="random-fact"><i class="fas fa-lightbulb"></i> <strong>Случайный факт:</strong> ${randomFacts[Math.floor(Math.random() * randomFacts.length)]}</div>
+                <div class="stats-grid">
+                    <div class="stat-card"><i class="fas fa-users"></i><div class="stat-number">${chars.length}</div><div>Персонажей</div></div>
+                    <div class="stat-card"><i class="fas fa-film"></i><div class="stat-number">${movies.length}</div><div>Фильмов</div></div>
+                    <div class="stat-card"><i class="fas fa-book"></i><div class="stat-number">${comics.length}</div><div>Комиксов</div></div>
+                </div>
+                <h2>Популярные персонажи</h2>
+                <div class="cards-grid">
+                    ${chars.slice(0, 6).map(c => renderCharacterCard(c, Storage.isFavorite(c.id))).join('')}
+                </div>
+            `;
+            attachCardEvents();
+            attachFavoriteEvents();
+        }
+        
+        function renderCharacters() {
+            const container = document.getElementById('pageContent');
+            let chars = Storage.getCharacters();
+            let searchTerm = '';
+            let teamFilter = '';
+            let statusFilter = '';
+            
+            function applyFilters() {
+                let filtered = chars.filter(c => {
+                    if (searchTerm && !c.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+                    if (teamFilter && c.team !== teamFilter) return false;
+                    if (statusFilter && c.status !== statusFilter) return false;
+                    return true;
+                });
+                
+                container.innerHTML = `
+                    <div class="filters-bar">
+                        <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Поиск по имени..." value="${searchTerm}"></div>
+                        <div class="filter-group">
+                            <select id="teamFilter" class="filter-select"><option value="">Все команды</option>${[...new Set(chars.map(c => c.team))].map(t => `<option value="${t}" ${teamFilter === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
+                            <select id="statusFilter" class="filter-select"><option value="">Все статусы</option><option value="hero" ${statusFilter === 'hero' ? 'selected' : ''}>Герои</option><option value="villain" ${statusFilter === 'villain' ? 'selected' : ''}>Злодеи</option><option value="antihero" ${statusFilter === 'antihero' ? 'selected' : ''}>Антигерои</option></select>
+                        </div>
+                        <div class="filter-group"><span>Найдено: ${filtered.length} персонажей</span></div>
+                    </div>
+                    <div class="cards-grid">${filtered.length > 0 ? filtered.map(c => renderCharacterCard(c, Storage.isFavorite(c.id))).join('') : '<p style="text-align:center; padding:40px;">Персонажи не найдены</p>'}</div>
+                `;
+                attachCardEvents();
+                attachFavoriteEvents();
+                
+                document.getElementById('searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; applyFilters(); });
+                document.getElementById('teamFilter').addEventListener('change', (e) => { teamFilter = e.target.value; applyFilters(); });
+                document.getElementById('statusFilter').addEventListener('change', (e) => { statusFilter = e.target.value; applyFilters(); });
+            }
+            applyFilters();
+        }
+        
+        function renderMovies() {
+            const container = document.getElementById('pageContent');
+            let movies = Storage.getMovies();
+            let searchTerm = '';
+            let phaseFilter = '';
+            
+            function applyFilters() {
+                let filtered = movies.filter(movie => {
+                    if (searchTerm && !movie.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+                    if (phaseFilter && movie.phase != phaseFilter) return false;
+                    return true;
+                });
+                
+                container.innerHTML = `
+                    <div class="filters-bar">
+                        <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Поиск по названию..." value="${searchTerm}"></div>
+                        <div class="filter-group">
+                            <select id="phaseFilter" class="filter-select">
+                                <option value="">Все фазы</option>
+                                <option value="1" ${phaseFilter === '1' ? 'selected' : ''}>Фаза 1 (2008-2012)</option>
+                                <option value="2" ${phaseFilter === '2' ? 'selected' : ''}>Фаза 2 (2013-2015)</option>
+                                <option value="3" ${phaseFilter === '3' ? 'selected' : ''}>Фаза 3 (2016-2019)</option>
+                                <option value="4" ${phaseFilter === '4' ? 'selected' : ''}>Фаза 4 (2021-н.в.)</option>
+                            </select>
+                        </div>
+                        <div class="filter-group"><span>Найдено: ${filtered.length} фильмов</span></div>
+                    </div>
+                    <div class="cards-grid">${filtered.length > 0 ? filtered.map(m => renderMovieCard(m, Storage.isFavorite(m.id), Storage.getUserRating(m.id))).join('') : '<p style="text-align:center; padding:40px;">Фильмы не найдены</p>'}</div>
+                `;
+                attachCardEvents();
+                attachFavoriteEvents();
+                attachRatingEvents();
+                
+                document.getElementById('searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; applyFilters(); });
+                document.getElementById('phaseFilter').addEventListener('change', (e) => { phaseFilter = e.target.value; applyFilters(); });
+            }
+            applyFilters();
+        }
+        
+        function renderComics() {
+            const container = document.getElementById('pageContent');
+            let comics = Storage.getComics();
+            let searchTerm = '';
+            let sortBy = 'title';
+            let sortOrder = 'asc';
+            
+            function applyFilters() {
+                let filtered = [...comics];
+                
+                if (searchTerm) {
+                    filtered = filtered.filter(comic => 
+                        comic.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        comic.author.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                }
+                
+                filtered.sort((a, b) => {
+                    let aVal = a[sortBy];
+                    let bVal = b[sortBy];
+                    if (typeof aVal === 'string') {
+                        aVal = aVal.toLowerCase();
+                        bVal = bVal.toLowerCase();
+                    }
+                    if (sortOrder === 'asc') {
+                        return aVal > bVal ? 1 : -1;
+                    } else {
+                        return aVal < bVal ? 1 : -1;
+                    }
+                });
+                
+                container.innerHTML = `
+                    <div class="filters-bar">
+                        <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Поиск по названию или автору..." value="${searchTerm}"></div>
+                        <div class="filter-group">
+                            <select id="sortBy" class="filter-select">
+                                <option value="title" ${sortBy === 'title' ? 'selected' : ''}>По названию</option>
+                                <option value="year" ${sortBy === 'year' ? 'selected' : ''}>По году</option>
+                                <option value="issues" ${sortBy === 'issues' ? 'selected' : ''}>По выпускам</option>
+                                <option value="author" ${sortBy === 'author' ? 'selected' : ''}>По автору</option>
+                            </select>
+                            <select id="sortOrder" class="filter-select">
+                                <option value="asc" ${sortOrder === 'asc' ? 'selected' : ''}>По возрастанию</option>
+                                <option value="desc" ${sortOrder === 'desc' ? 'selected' : ''}>По убыванию</option>
+                            </select>
+                        </div>
+                        <div class="filter-group"><span>Найдено: ${filtered.length} комиксов</span></div>
+                    </div>
+                    <div class="cards-grid">${filtered.length > 0 ? filtered.map(c => renderComicCard(c, Storage.isFavorite(c.id))).join('') : '<p style="text-align:center; padding:40px;">Комиксы не найдены</p>'}</div>
+                `;
+                attachCardEvents();
+                attachFavoriteEvents();
+                
+                document.getElementById('searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; applyFilters(); });
+                document.getElementById('sortBy').addEventListener('change', (e) => { sortBy = e.target.value; applyFilters(); });
+                document.getElementById('sortOrder').addEventListener('change', (e) => { sortOrder = e.target.value; applyFilters(); });
+            }
+            applyFilters();
+        }
+        
+        function renderFavorites() {
+            const container = document.getElementById('pageContent');
+            const favs = Storage.getFavorites();
+            const chars = Storage.getCharacters();
+            const movies = Storage.getMovies();
+            const comics = Storage.getComics();
+            let items = [];
+            favs.forEach(fav => {
+                if (fav.type === 'character') { let c = chars.find(ch => ch.id === fav.id); if (c) items.push({ ...c, type: 'character' }); }
+                if (fav.type === 'movie') { let m = movies.find(mo => mo.id === fav.id); if (m) items.push({ ...m, type: 'movie' }); }
+                if (fav.type === 'comic') { let co = comics.find(cm => cm.id === fav.id); if (co) items.push({ ...co, type: 'comic' }); }
+            });
+            container.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Избранное</h2>
+                    <button id="clearAllFav" class="btn btn-secondary">Очистить всё</button>
+                </div>
+                <div class="cards-grid">${items.length > 0 ? items.map(item => {
+                    if (item.type === 'character') return renderCharacterCard(item, true);
+                    if (item.type === 'movie') return renderMovieCard(item, true, Storage.getUserRating(item.id));
+                    return renderComicCard(item, true);
+                }).join('') : '<p style="text-align:center; padding: 40px;">Нет избранных элементов</p>'}</div>
+            `;
+            attachCardEvents();
+            attachFavoriteEvents();
+            attachRatingEvents();
+            document.getElementById('clearAllFav')?.addEventListener('click', () => {
+                Storage.saveFavorites([]);
+                Notify.success('Избранное очищено');
+                renderFavorites();
+                document.getElementById('favoritesCount').innerText = '0';
+            });
+        }
+        
+        function attachCardEvents() {
+            document.querySelectorAll('.details-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    const type = btn.dataset.type;
+                    let item, content = '';
+                    if (type === 'character') {
+                        item = Storage.getCharacters().find(c => c.id === id);
+                        content = `
+                            <img src="images/${item.id}.jpg" class="modal-image" onerror="this.src='https://placehold.co/400x300/e23636/white?text=${encodeURIComponent(item.name)}'">
+                            <h3>${item.name}</h3>
+                            <p><strong>Описание:</strong> ${item.description}</p>
+                            <p><strong>Команда:</strong> ${item.team}</p>
+                            <p><strong>Статус:</strong> ${item.status === 'hero' ? 'Герой' : (item.status === 'villain' ? 'Злодей' : 'Антигерой')}</p>
+                            <p><strong>Год первого появления:</strong> ${item.firstAppearance}</p>
+                            <p><strong>Уровень силы:</strong> ${item.powerLevel}/100</p>
+                            <div class="progress-bar"><div class="progress-fill" style="width: ${item.powerLevel}%"></div></div>
+                            <p><strong>Способности:</strong> ${item.abilities.join(', ')}</p>
+                        `;
+                    } else if (type === 'movie') {
+                        item = Storage.getMovies().find(m => m.id === id);
+                        content = `
+                            <img src="images/${item.id}.jpg" class="modal-image" onerror="this.src='https://placehold.co/400x300/e23636/white?text=${encodeURIComponent(item.title)}'">
+                            <h3>${item.title}</h3>
+                            <p><strong>Описание:</strong> ${item.description}</p>
+                            <p><strong>Фаза Marvel:</strong> ${item.phase}</p>
+                            <p><strong>Год выхода:</strong> ${item.year}</p>
+                            <p><strong>Рейтинг IMDB:</strong> ⭐ ${item.rating}/10</p>
+                            <p><strong>Длительность:</strong> ${item.duration} мин</p>
+                            ${Storage.getUserRating(id) ? `<p><strong>Ваша оценка:</strong> ⭐ ${Storage.getUserRating(id)}/10</p>` : ''}
+                        `;
+                    } else {
+                        item = Storage.getComics().find(c => c.id === id);
+                        const comicNumber = item.id.replace('com', '');
+                        content = `
+                            <img src="images/com_${comicNumber}.jpg" class="modal-image" onerror="this.src='https://placehold.co/400x300/e23636/white?text=${encodeURIComponent(item.title)}'">
+                            <h3>${item.title}</h3>
+                            <p><strong>Описание:</strong> ${item.description}</p>
+                            <p><strong>Автор:</strong> ${item.author}</p>
+                            <p><strong>Год выпуска:</strong> ${item.year}</p>
+                            <p><strong>Издательство:</strong> ${item.publisher}</p>
+                            <p><strong>Количество выпусков:</strong> ${item.issues}</p>
+                        `;
+                    }
+                    Modal.show({ title: 'Подробнее', content });
+                };
+            });
+        }
+        
+        function attachFavoriteEvents() {
+            document.querySelectorAll('.favorite-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    const type = btn.dataset.type;
+                    if (Storage.isFavorite(id)) {
+                        Storage.removeFavorite(id);
+                        btn.classList.remove('active');
+                        Notify.success('Удалено из избранного');
+                    } else {
+                        Storage.addFavorite(id, type);
+                        btn.classList.add('active');
+                        Notify.success('Добавлено в избранное');
+                    }
+                    document.getElementById('favoritesCount').innerText = Storage.getFavorites().length;
+                    if (currentView === 'favorites') renderFavorites();
+                };
+            });
+        }
+        
+        function attachRatingEvents() {
+            document.querySelectorAll('.rate-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    const currentRating = Storage.getUserRating(id);
+                    let starsHtml = '';
+                    for (let i = 1; i <= 10; i++) {
+                        starsHtml += `<i class="fas fa-star" data-val="${i}" style="font-size:32px;cursor:pointer;margin:5px;color:${currentRating && i <= currentRating ? '#ffc107' : '#ddd'}"></i>`;
+                    }
+                    Modal.show({
+                        title: 'Оценить фильм',
+                        content: `<div style="text-align:center"><p>Оцените фильм от 1 до 10</p><div style="display:flex; justify-content:center; flex-wrap:wrap;" id="rateStars">${starsHtml}</div></div>`
+                    });
+                    setTimeout(() => {
+                        let selectedRating = currentRating || 0;
+                        const stars = document.querySelectorAll('#rateStars i');
+                        stars.forEach(star => {
+                            star.onmouseenter = () => { let v = parseInt(star.dataset.val); stars.forEach((s, i) => s.style.color = i < v ? '#ffc107' : '#ddd'); };
+                            star.onclick = () => { 
+                                selectedRating = parseInt(star.dataset.val);
+                                Storage.setUserRating(id, selectedRating);
+                                Notify.success(`Оценка ${selectedRating}/10 сохранена`);
+                                if (currentView === 'movies') renderMovies();
+                                if (currentView === 'favorites') renderFavorites();
+                                Modal.hide();
+                            };
+                        });
+                    }, 100);
+                };
+            });
+        }
+        
+        function navigateTo(page) {
+            currentView = page;
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.page === page) link.classList.add('active');
+            });
+            const titles = { home: 'MarvelPedia', characters: 'Персонажи Marvel', movies: 'Фильмы Marvel', comics: 'Комиксы Marvel', favorites: 'Избранное' };
+            document.getElementById('pageTitle').innerText = titles[page] || 'MarvelPedia';
+            if (page === 'home') renderHome();
+            else if (page === 'characters') renderCharacters();
+            else if (page === 'movies') renderMovies();
+            else if (page === 'comics') renderComics();
+            else if (page === 'favorites') renderFavorites();
+        }
+        
+        // ==================== INIT ====================
+        Storage.init();
+        
+        // Theme
+        const savedTheme = Storage.getTheme();
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeToggle').onclick = () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            Storage.saveTheme(newTheme);
+        };
+        
+        // Navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.onclick = () => navigateTo(link.dataset.page);
+        });
+        
+        // Burger menu
+        document.getElementById('burgerMenu').onclick = () => document.getElementById('sidebar').classList.add('open');
+        document.getElementById('closeSidebar').onclick = () => document.getElementById('sidebar').classList.remove('open');
+        
+        // Admin panel
+        document.getElementById('adminBtn').onclick = () => {
+            Modal.show({
+                title: 'Панель управления',
+                content: `<div style="text-align:center">
+                    <p><strong>Статистика:</strong></p>
+                    <p>👥 Персонажей: ${Storage.getCharacters().length}</p>
+                    <p>🎬 Фильмов: ${Storage.getMovies().length}</p>
+                    <p>📚 Комиксов: ${Storage.getComics().length}</p>
+                    <p>❤️ Избранное: ${Storage.getFavorites().length}</p>
+                    <hr>
+                    <p><strong>Инструкция по картинкам:</strong></p>
+                    <p style="font-size:12px;">Создайте папку <strong>images</strong> и положите туда:</p>
+                    <p style="font-size:11px;">📁 Персонажи: char1.jpg - char25.jpg</p>
+                    <p style="font-size:11px;">📁 Фильмы: mov1.jpg - mov25.jpg</p>
+                    <p style="font-size:11px;">📁 Комиксы: com_1.jpg - com_25.jpg</p>
+                    <hr>
+                    <button id="clearAllDataBtn" class="btn btn-secondary">🗑️ Очистить все данные</button>
+                </div>`
+            });
+            setTimeout(() => {
+                document.getElementById('clearAllDataBtn')?.addEventListener('click', () => {
+                    if (confirm('ВНИМАНИЕ! Это удалит ВСЕ данные. Продолжить?')) {
+                        localStorage.clear();
+                        Storage.init();
+                        Notify.success('Все данные очищены');
+                        navigateTo('home');
+                        Modal.hide();
+                    }
+                });
+            }, 100);
+        };
+        
+        // Update favorites count
+        function updateFavCount() {
+            document.getElementById('favoritesCount').innerText = Storage.getFavorites().length;
+        }
+        updateFavCount();
+        
+        // Start
+        navigateTo('home');
+    </script>
+</body>
+</html>
